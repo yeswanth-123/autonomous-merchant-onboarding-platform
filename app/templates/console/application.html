@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}{{ application.id }}{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>{{ application.id }} {{ ui.badge(application.state) }}</h1>
+      <div class="sub">
+        {{ application.business_type }}
+        · data v{{ application.data_version }}
+        · created {{ application.created_at|short_datetime }}
+        {% if application.owner %}
+          · owner {{ application.owner }}
+        {% else %}
+          · demo / service
+        {% endif %}
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="/console/applications">← Back</a>
+    </div>
+  </div>
+
+  <div id="live"
+       data-poll="/console/applications/{{ application.id }}?fragment=true{{ '&unmask=true' if unmask }}"
+       data-interval="2500">
+    {% include "console/_detail_body.html" %}
+  </div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}New application{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>New merchant application</h1>
+      <div class="sub">Tell us about your business, then upload your documents.</div>
+      <div class="sub small">Fields marked {{ ui.required_mark() }} are mandatory.</div>
+    </div>
+  </div>
+
+  {% if errors %}
+    <div class="alert tone-danger">
+      <span class="ic">⚠️</span>
+      <div>
+        <b>Please fix the highlighted fields.</b>
+        {% if errors.files %}
+          <div>{{ errors.files }}</div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" action="/portal/new" enctype="multipart/form-data" novalidate>
+    {{ ui.csrf_field() }}
+
+    <div class="card">
+      <h2>1 · Business details</h2>
+      <div class="form-grid">
+        {{ ui.field('legal_name', 'Legal business name', values, errors,
+                    css_class='full', placeholder='e.g. Sunrise Traders Private Limited', required=true) }}
+
+        <div>
+          <label class="f" for="f_business_type">Business type{{ ui.required_mark() }}</label>
+          <select id="f_business_type" name="business_type" data-business-type>
+            {% set business_types = [('company', 'Company'),
+                                     ('firm', 'Partnership / firm'),
+                                     ('trust', 'Trust'),
+                                     ('individual', 'Individual / sole proprietor')] %}
+            {% for option_value, option_text in business_types %}
+              <option value="{{ option_value }}" {{ 'selected' if values.get('business_type') == option_value }}>
+                {{ option_text }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {% if errors.business_type %}
+          <div class="full">
+            <div class="f-err">{{ errors.business_type }}</div>
+          </div>
+        {% endif %}
+
+        <div data-individual-field class="full">
+          {{ ui.field('proprietor_name', "Owner's name (as on PAN card)", values, errors,
+                      hint='Sole proprietors: the PAN belongs to you, so we compare it with your own name',
+                      placeholder='e.g. Ravi Kumar', required=true) }}
+        </div>
+
+        {{ ui.field('pincode', 'PIN code', values, errors, placeholder='400001', required=true) }}
+        {{ ui.field('phone', 'Contact phone', values, errors, placeholder='98XXXXXXXX') }}
+        {{ ui.field('email', 'Contact email', values, errors, input_type='email') }}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Tax identity</h2>
+      <div class="form-grid">
+        {{ ui.field('pan', 'PAN', values, errors, hint='5 letters, 4 digits, 1 letter', placeholder='ABCDE1234F', required=true) }}
+
+        <div data-gst-field>
+          {{ ui.field('gstin', 'GSTIN', values, errors,
+                      hint='15 characters; must contain your PAN', placeholder='27ABCDE1234F1Z5', required=true) }}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3 · Bank account for settlements</h2>
+      <div class="form-grid">
+        {{ ui.field('bank_account', 'Account number', values, errors, hint='9–18 digits', required=true) }}
+        {{ ui.field('ifsc', 'IFSC', values, errors, placeholder='HDFC0001234', required=true) }}
+        {{ ui.field('account_holder', 'Account holder name', values, errors,
+                    css_class='full', hint='Exactly as on your bank records', required=true) }}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>4 · Documents</h2>
+      <p class="muted small">All documents are required. Clear, uncropped photos or PDFs. Blurry images will be sent back to you.</p>
+
+      <div class="grid g3 mt">
+        {{ ui.filedrop('file_PAN', 'PAN card', required=true, error=errors.get('file_PAN')) }}
+        <div data-gst-field>
+          {{ ui.filedrop('file_GST', 'GST certificate', required=true, error=errors.get('file_GST')) }}
+        </div>
+        {{ ui.filedrop('file_BANK_PROOF', 'Cancelled cheque / bank proof', required=true, error=errors.get('file_BANK_PROOF')) }}
+      </div>
+
+      {{ ui.upload_note() }}
+    </div>
+
+    <div class="actions">
+      <button type="submit">Submit application</button>
+      <a class="btn secondary" href="/portal">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Metrics{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>Operational metrics</h1>
+      <div class="sub">Derived from the audit trail.</div>
+    </div>
+  </div>
+
+  <div class="grid g4 mb">
+    {{ ui.kpi('Applications', stats.total_applications) }}
+    {{ ui.kpi('Exception rate', ((stats.exception_rate * 100)|round(1)) ~ '%') }}
+    {{ ui.kpi('Avg time to active',
+              (stats.avg_time_to_active_s if stats.avg_time_to_active_s is not none else '–')
+              ~ ('s' if stats.avg_time_to_active_s is not none else '')) }}
+    {{ ui.kpi('Duplicate callbacks ignored', stats.duplicate_callbacks_ignored) }}
+  </div>
+
+  <div class="card">
+    <h2>Time in state <span class="muted small">bar = average, tick = p95 (seconds)</span></h2>
+    {{ chart_bars(time_in_state_rows) }}
+  </div>
+
+  <div class="grid g2">
+
+    <div class="card">
+      <h2>Detail</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>State</th>
+              <th>Visits</th>
+              <th>Avg</th>
+              <th>p95</th>
+              <th>Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for state_name, visit_stats in stats.time_in_state.items() %}
+              <tr>
+                <td>{{ ui.badge(state_name) }}</td>
+                <td>{{ visit_stats.visits }}</td>
+                <td>{{ visit_stats.avg_s }}s</td>
+                <td>{{ visit_stats.p95_s }}s</td>
+                <td>{{ visit_stats.max_s }}s</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5" class="muted">No completed visits yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Provider callbacks</h2>
+      <dl class="kv">
+        {% set callback_labels = {'APPLIED': 'Provider answers used',
+                                  'DUPLICATE': 'Duplicate answers ignored',
+                                  'LATE': 'Late answers (sent to review)',
+                                  'STALE': 'Outdated answers ignored',
+                                  'UNKNOWN': 'Unrecognised answers ignored'} %}
+        {% for disposition, count in stats.callbacks_by_disposition.items() %}
+          <dt>{{ callback_labels.get(disposition, disposition|capitalize) }}</dt>
+          <dd>{{ count }}</dd>
+        {% else %}
+          <dt>None yet</dt>
+          <dd></dd>
+        {% endfor %}
+
+        <dt>Failed jobs</dt>
+        <dd>{{ stats.dead_jobs }}</dd>
+
+        <dt>Open reviews</dt>
+        <dd>{{ stats.open_review_tasks }}</dd>
+      </dl>
+    </div>
+
+  </div>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% import "_ui.html" as ui with context %}
+
+<div class="card">
+  {{ ui.stepper(stages, stage_index, is_ended, application.state == 'NEEDS_INFO') }}
+
+  <div class="actions mt">
+    {% if application.payout_hold %}
+      <span class="badge tone-danger">payout hold</span>
+    {% endif %}
+
+    {% if application.anonymised_at %}
+      <span class="pill">anonymised {{ application.anonymised_at|short_datetime }}</span>
+    {% elif application.docs_purged_at %}
+      <span class="pill">documents purged {{ application.docs_purged_at|short_datetime }}</span>
+    {% endif %}
+
+    {% if application.merchant_id %}
+      <span class="badge tone-success">{{ application.merchant_id }}</span>
+    {% endif %}
+
+    <span class="grow"></span>
+
+    {% if unmask %}
+      <span class="pill">PII unmasked (audited)</span>
+      <a class="small" href="/console/applications/{{ application.id }}">mask</a>
+    {% elif can_decide and not application.anonymised_at %}
+      <a class="small" href="/console/applications/{{ application.id }}?unmask=true">🔓 unmask PII (audited)</a>
+    {% else %}
+      <span class="muted small">PII masked</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if application.missing_info %}
+  {% call ui.alert('warn', 'Waiting for the merchant', '✋') %}
+    <ul>
+      {% for message in application.missing_info %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+{% endif %}
+
+{% if application.flag_details %}
+  {% call ui.alert('orange', 'Flags raised', '🚩') %}
+    <span class="mono">{{ application.flag_details }}</span>
+  {% endcall %}
+{% endif %}
+
+<div class="grid g21">
+
+  <div>
+
+    <div class="card">
+      <h2>Verification checks</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Check</th>
+              <th>Try</th>
+              <th>Status</th>
+              <th>Reason / result</th>
+              <th>Deadline</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for check in application.checks %}
+              <tr>
+                <td><b>{{ check.check }}</b></td>
+                <td>{{ check.attempt }}</td>
+                <td>{{ ui.badge(check.status) }}</td>
+                <td class="mono">{{ check.reason or '' }} {{ check.result if check.result }}</td>
+                <td class="mono">{{ check.deadline_at|time_only }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="5" class="muted">No checks requested yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Extracted fields &amp; validation</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Field</th>
+              <th>Value</th>
+              <th>Conf.</th>
+              <th>Status</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for field_row in application.fields %}
+              <tr>
+                <td>{{ field_row.doc_type }} <span class="muted small">({{ field_row.source }})</span></td>
+                <td>{{ field_row.field }}</td>
+                <td class="mono">{{ field_row.value or '' }}</td>
+                <td>{{ '%.2f'|format(field_row.confidence) if field_row.confidence is not none else '' }}</td>
+                <td>{{ ui.badge(field_row.status) }}</td>
+                <td class="small">{{ field_row.detail }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6" class="muted">
+                  {{ 'Data removed by retention policy.' if application.anonymised_at or application.docs_purged_at
+                     else 'Not extracted yet.' }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Audit trail <span class="muted small">newest first</span></h2>
+      <ul class="timeline">
+        {% for entry in audit_rows %}
+          <li class="t-{{ tone_for(entry.to) if entry.to else 'muted' }}">
+            <div class="tt">
+              {{ entry.event|replace('_', ' ')|capitalize -}}
+              {%- if entry.to -%}
+                : {{ entry['from'] or '–' }} → {{ ui.badge(entry.to) }}
+              {%- endif %}
+            </div>
+            <div class="ts">{{ entry.ts|short_datetime }} · {{ entry.actor }}</div>
+            {% if entry.payload %}
+              <div class="pl mono">{{ entry.payload }}</div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div>
+
+  <div>
+
+    <div class="card">
+      <h2>Decision</h2>
+
+      {% if not can_decide %}
+        <p class="muted small">Reviewer role required to act.</p>
+
+      {% elif application.state == 'MANUAL_REVIEW' %}
+        <form method="post" action="/console/applications/{{ application.id }}/action">
+          {{ ui.csrf_field() }}
+
+          <label class="f" for="reason">Reason (required, audited)</label>
+          <input id="reason" name="reason" type="text" required>
+
+          <label class="f mt" for="message">Message to merchant (for “request info”)</label>
+          <input id="message" name="message" type="text">
+
+          <div class="actions mt">
+            <button class="success sm" name="act" value="approve">Approve</button>
+            <button class="danger sm" name="act" value="reject">Reject</button>
+            <button class="orange sm" name="act" value="request_info">Request info</button>
+            <button class="secondary sm" name="act" value="reverify">Re-verify</button>
+            <button class="secondary sm" name="act" value="retry_extraction">Re-read documents</button>
+          </div>
+        </form>
+
+      {% elif application.state == 'PROVISIONING_FAILED' %}
+        <form method="post" action="/console/applications/{{ application.id }}/action">
+          {{ ui.csrf_field() }}
+
+          <label class="f" for="reason">Reason</label>
+          <input id="reason" name="reason" type="text" required>
+
+          <div class="actions mt">
+            <button class="sm" name="act" value="retry_provisioning">Retry merchant-ID creation</button>
+            <button class="danger sm" name="act" value="reject">Reject</button>
+          </div>
+        </form>
+
+      {% else %}
+        <p class="muted small">No decision needed in this state.</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2>Documents</h2>
+
+      {% for document in application.documents %}
+        <div class="inline mb">
+          <span>{{ document.label }}</span>
+          <span class="muted small">v{{ document.data_version }}</span>
+          <span class="grow"></span>
+
+          {% if document.purged %}
+            <span class="pill">purged</span>
+          {% elif document.encrypted_file and can_decide %}
+            <a class="btn secondary sm"
+               href="/console/documents/{{ document.id }}"
+               target="_blank"
+               rel="noopener">View 🔓</a>
+          {% elif document.encrypted_file %}
+            <span class="pill">🔒 encrypted</span>
+          {% else %}
+            <span class="pill">payload</span>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="muted small">None.</p>
+      {% endfor %}
+
+      <p class="muted small">Viewing decrypts the file in memory and is written to the audit trail.</p>
+    </div>
+
+    {% if application.review_tasks %}
+      <div class="card">
+        <h2>Review tasks</h2>
+        {% for task in application.review_tasks %}
+          <div class="mb">
+            <div class="inline">
+              <b>{{ task.reason|replace('_', ' ')|capitalize }}</b>
+              {{ ui.badge(task.status) }}
+            </div>
+            <div class="mono muted">{{ task.context }}</div>
+            {% if task.resolution %}
+              <div class="small">Resolved: {{ task.resolution }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>

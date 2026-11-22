@@ -1,0 +1,76 @@
+{% import "_ui.html" as ui with context %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{% block title %}Home{% endblock %} · Merchant Onboarding</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+<div class="shell">
+
+  <aside class="side">
+    <div class="brand">
+      <span class="logo">M</span>
+      <span>Merchant Onboarding</span>
+    </div>
+
+    <nav>
+      {% macro nav_link(href, icon, text, active_prefix=None) %}
+        <a class="nav {{ 'active' if (current_path == href or (active_prefix and current_path.startswith(active_prefix))) }}"
+           href="{{ href }}">
+          <span class="ico">{{ icon }}</span>{{ text }}
+        </a>
+      {% endmacro %}
+
+      {% if user and user.role == 'merchant' %}
+        <div class="sec">Merchant</div>
+        {{ nav_link('/portal', '🏠', 'My applications') }}
+        {{ nav_link('/portal/new', '➕', 'New application') }}
+        {{ nav_link('/portal/my-data', '🔒', 'My data') }}
+
+      {% elif user %}
+        <div class="sec">Operations</div>
+        {{ nav_link('/console', '📊', 'Overview') }}
+        {{ nav_link('/console/applications', '🗂️', 'Applications', '/console/applications') }}
+        {{ nav_link('/console/review', '🧑‍⚖️', 'Review queue') }}
+        {% if user.role == 'admin' %}
+          {{ nav_link('/console/dlq', '⚠️', 'Failed jobs') }}
+          {{ nav_link('/console/metrics', '📈', 'Metrics') }}
+        {% endif %}
+      {% endif %}
+    </nav>
+
+    <div class="side-foot">
+      {% if user %}
+        <div class="userbox">
+          <div class="nm">{{ user.full_name or 'Account' }}</div>
+          <div class="em">{{ user.email }}</div>
+          <div style="margin-top:6px">
+            <span class="pill">{{ user.role }}</span>
+          </div>
+          <form method="post" action="/logout">
+            {{ ui.csrf_field() }}
+            <button class="ghost sm" type="submit">Sign out</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <div class="main">
+    {% if flash_message %}
+      {% set flash_class = flash_tone if flash_tone in ['success', 'info', 'warn', 'danger'] else 'info' %}
+      <div class="flash tone-{{ flash_class }}" role="status">{{ flash_message }}</div>
+    {% endif %}
+
+    {% block body %}{% endblock %}
+  </div>
+
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

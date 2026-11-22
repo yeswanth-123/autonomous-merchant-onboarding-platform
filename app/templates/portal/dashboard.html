@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}My applications{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>My applications</h1>
+      <div class="sub">Track your onboarding and respond to requests from our team.</div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="/portal/new">＋ New application</a>
+    </div>
+  </div>
+
+  {% set applications_needing_action = applications|selectattr('needs_action')|list %}
+  {% if applications_needing_action %}
+    {% call ui.alert('warn', 'Action needed on ' ~ applications_needing_action|length ~ ' application(s)', '✋') %}
+      <span>Open it below and fix the items we listed to keep things moving.</span>
+    {% endcall %}
+  {% endif %}
+
+  {% for application in applications %}
+    <a class="appcard" href="/portal/applications/{{ application.id }}">
+      <div>
+        <div class="nm">{{ application.name }}</div>
+        <div class="muted small">{{ application.id }} · started {{ application.created_at|short_datetime }}</div>
+      </div>
+      <div class="actions">
+        <span class="badge tone-{{ application.tone }}">{{ application.headline }}</span>
+        <span class="muted">›</span>
+      </div>
+    </a>
+  {% else %}
+    <div class="card">
+      <div class="empty">
+        <div class="big">🧾</div>
+        <b>No applications yet</b>
+        Start your first application.
+        <div class="mt">
+          <a class="btn" href="/portal/new">Start an application</a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+{% endblock %}

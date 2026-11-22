@@ -1,0 +1,76 @@
+{% extends "auth_layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Create account{% endblock %}
+
+{% block body %}
+  <h1>Create your account</h1>
+  <p class="muted mb">Start your merchant application in minutes.</p>
+
+  {% if error %}
+    <div class="alert tone-danger">
+      <span class="ic">⚠️</span>
+      <div>{{ error }}</div>
+    </div>
+  {% endif %}
+
+  <form method="post" action="/signup" novalidate>
+    {{ ui.csrf_field() }}
+
+    <div class="mb">
+      <label class="f" for="full_name">Your name</label>
+      <input id="full_name"
+             name="full_name"
+             type="text"
+             value="{{ values.get('full_name', '') }}"
+             autocomplete="name"
+             required
+             autofocus>
+    </div>
+
+    <div class="mb">
+      <label class="f" for="email">Email</label>
+      <input id="email"
+             name="email"
+             type="email"
+             value="{{ values.get('email', '') }}"
+             autocomplete="username"
+             required>
+    </div>
+
+    <div class="mb">
+      <label class="f" for="password">Password</label>
+      <div class="pw">
+        <input id="password"
+               name="password"
+               type="password"
+               autocomplete="new-password"
+               required>
+        <button type="button" class="ghost" data-toggle-password="password">Show</button>
+      </div>
+      <div class="f-hint">At least 10 characters, with an uppercase letter, a lowercase letter, a digit and a special character.</div>
+    </div>
+
+    <div class="mb">
+      <label class="f" for="confirm">Confirm password</label>
+      <input id="confirm"
+             name="confirm"
+             type="password"
+             autocomplete="new-password"
+             required>
+    </div>
+
+    <label class="check mb">
+      <input type="checkbox" name="consent">
+      <span>
+        I understand that my business and identity documents (PAN, GSTIN, bank details) are processed and stored
+        encrypted for onboarding and kept only as long as the
+        <a href="/retention-policy" target="_blank">retention policy</a> allows.
+      </span>
+    </label>
+
+    <button class="block" type="submit">Create account</button>
+  </form>
+
+  <p class="muted small mt">Already registered? <a href="/login">Sign in</a></p>
+{% endblock %}

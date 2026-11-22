@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Applications{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>Applications</h1>
+      <div class="sub">Search and filter every application.</div>
+    </div>
+
+    <form class="inline" method="get" action="/console/applications">
+      <input type="search" name="q" value="{{ search_text }}" placeholder="Search by ID (APP-…)">
+      {% if selected_state %}
+        <input type="hidden" name="state" value="{{ selected_state }}">
+      {% endif %}
+      <button class="secondary" type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="chips">
+    <a class="chip {{ 'on' if not selected_state }}" href="/console/applications">All</a>
+
+    {% for state_name in all_states %}
+      {% if count_by_state.get(state_name) or selected_state == state_name %}
+        <a class="chip {{ 'on' if selected_state == state_name }}"
+           href="/console/applications?state={{ state_name }}">
+          {{ label_for(state_name) }}<span class="n">{{ count_by_state.get(state_name, 0) }}</span>
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Application</th>
+            <th>State</th>
+            <th>Owner</th>
+            <th>Type</th>
+            <th>Ver.</th>
+            <th>Flags</th>
+            <th>Age</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in application_rows %}
+            <tr>
+              <td class="id"><a href="/console/applications/{{ row.id }}">{{ row.id }}</a></td>
+              <td>{{ ui.badge(row.state) }}</td>
+              <td class="muted small">{{ row.owner }}</td>
+              <td>{{ row.business_type }}</td>
+              <td>{{ row.data_version }}</td>
+              <td>
+                {% for flag in row.flags %}
+                  <span class="pill">{{ flag }}</span>
+                {% endfor %}
+                {% if row.payout_hold %}
+                  <span class="badge tone-danger">payout hold</span>
+                {% endif %}
+                {% if row.anonymised %}
+                  <span class="pill">anonymised</span>
+                {% endif %}
+              </td>
+              <td class="muted small nowrap">{{ row.age_seconds }}s</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7">
+                <div class="empty">
+                  <div class="big">🔎</div>
+                  <b>No applications match</b>
+                  Try clearing the filter.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

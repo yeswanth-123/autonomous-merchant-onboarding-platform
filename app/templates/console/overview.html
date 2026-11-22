@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Overview{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>Operations overview</h1>
+      <div class="sub">Onboarding health at a glance.</div>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="/console/applications">All applications</a>
+    </div>
+  </div>
+
+  <div class="grid g4 mb">
+    {{ ui.kpi('Applications', stats.total_applications, in_progress_count ~ ' in progress') }}
+    {{ ui.kpi('Needs a human', stats.open_review_tasks, 'open review tasks',
+              'orange' if stats.open_review_tasks else '') }}
+    {{ ui.kpi('Exception rate', ((stats.exception_rate * 100)|round(0)|int) ~ '%',
+              stats.applications_with_exceptions ~ ' applications hit an exception') }}
+    {{ ui.kpi('Failed jobs', stats.dead_jobs, 'need a manual retry',
+              'danger' if stats.dead_jobs else 'success') }}
+  </div>
+
+  <div class="grid g12">
+
+    <div class="card">
+      <h2>Applications by state</h2>
+      <div class="donutwrap">
+        {{ chart_donut(count_by_state) }}
+
+        <div class="legend">
+          {% for state_name, count in count_by_state.items() if count %}
+            <div class="row">
+              <span class="sw" style="background:{{ tone_colors[tone_for(state_name)] }}"></span>
+              <a href="/console/applications?state={{ state_name }}">{{ label_for(state_name) }}</a>
+              <b>{{ count }}</b>
+            </div>
+          {% else %}
+            <span class="muted">Nothing yet.</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cardhead">
+        <h2>Needs your attention</h2>
+        <a href="/console/review" class="small">Open queue →</a>
+      </div>
+
+      {% for task in open_tasks %}
+        <a class="appcard" href="/console/applications/{{ task.application_id }}">
+          <div>
+            <div class="nm">{{ task.reason|replace('_', ' ')|capitalize }}</div>
+            <div class="muted small">{{ task.application_id }} · {{ task.opened_at|short_datetime }}</div>
+          </div>
+          <span class="badge tone-orange">P{{ task.priority }}</span>
+        </a>
+      {% else %}
+        <div class="empty">
+          <div class="big">🎉</div>
+          <b>Queue is clear</b>
+          No applications are waiting for review.
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>Recent applications</h2>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Application</th>
+            <th>State</th>
+            <th>Type</th>
+            <th>Flags</th>
+            <th>Age</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for application in recent_applications %}
+            <tr>
+              <td class="id"><a href="/console/applications/{{ application.id }}">{{ application.id }}</a></td>
+              <td>{{ ui.badge(application.state) }}</td>
+              <td>{{ application.business_type }}</td>
+              <td>
+                {% for flag in application.flags %}
+                  <span class="pill">{{ flag }}</span>
+                {% endfor %}
+                {% if application.payout_hold %}
+                  <span class="badge tone-danger">payout hold</span>
+                {% endif %}
+              </td>
+              <td class="muted small">{{ application.age_seconds }}s</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty">
+                  <b>No applications yet</b>
+                  Merchants appear here after they apply.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

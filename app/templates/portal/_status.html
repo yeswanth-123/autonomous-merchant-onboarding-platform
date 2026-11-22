@@ -1,0 +1,87 @@
+{% import "_ui.html" as ui with context %}
+
+<div class="card">
+  {{ ui.stepper(view.stages, view.stage, view.ended, view.needs_action) }}
+</div>
+
+{% call ui.alert(view.tone, view.headline, {'info': '⏳', 'success': '✅', 'warn': '✋', 'danger': '⛔', 'muted': '📁'}[view.tone]) %}
+  <span>{{ view.message }}</span>
+
+  {% if view.merchant_id %}
+    <div class="mt">Merchant ID: <b class="mono">{{ view.merchant_id }}</b></div>
+  {% endif %}
+
+  {% if view.needs_action and view.missing_info %}
+    <ul>
+      {% for message in view.missing_info %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endcall %}
+
+<div class="grid g21">
+
+  <div class="card">
+    <div class="cardhead">
+      <h2>Your documents</h2>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Status</th>
+            <th>Uploaded</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for document in view.documents %}
+            <tr>
+              <td>{{ document.label }}</td>
+              <td><span class="badge tone-{{ document.tone }}">{{ document.status }}</span></td>
+              <td class="muted small">{{ (document.uploaded_at or '–')|short_datetime }}</td>
+              <td class="right">
+                {% if document.has_file %}
+                  <a class="btn secondary sm"
+                     href="/portal/applications/{{ view.id }}/documents/{{ document.id }}">Download</a>
+                {% elif document.purged %}
+                  <span class="muted small">removed</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Progress</h2>
+    <ul class="timeline">
+      {% for entry in view.timeline %}
+        <li>
+          <div class="tt">{{ entry.text }}</div>
+          <div class="ts">{{ entry.ts|short_datetime }}</div>
+        </li>
+      {% else %}
+        <li>
+          <div class="tt">Nothing yet</div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</div>
+
+{% if view.can_withdraw %}
+  <div class="actions mb">
+    <form method="post"
+          action="/portal/applications/{{ view.id }}/withdraw"
+          data-confirm="Withdraw this application? This cannot be undone.">
+      {{ ui.csrf_field() }}
+      <button class="secondary" type="submit">Withdraw application</button>
+    </form>
+  </div>
+{% endif %}

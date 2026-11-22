@@ -1,0 +1,61 @@
+{% import "_ui.html" as ui with context %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{% block title %}Sign in{% endblock %} · Merchant Onboarding</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="auth">
+<div class="authwrap">
+
+  <section class="authside">
+    <div class="logo">M</div>
+    <h1>Get your business ready to accept payments.</h1>
+
+    <ul>
+      <li>
+        <span>⚡</span>
+        <div>
+          <b>Fast onboarding</b>
+          Track every step of your application in real time.
+        </div>
+      </li>
+      <li>
+        <span>🔐</span>
+        <div>
+          <b>Encrypted</b>
+          Your files are encrypted.
+        </div>
+      </li>
+      <li>
+        <span>📥</span>
+        <div>
+          <b>Your data</b>
+          See your applications and download the documents you uploaded.
+          <a href="/retention-policy" target="_blank">Retention policy</a>.
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="authform">
+    <div class="authcard">
+      {% if flash_message %}
+        {% set flash_class = flash_tone if flash_tone in ['success', 'info', 'warn', 'danger'] else 'info' %}
+        <div class="alert tone-{{ flash_class }}">
+          <div>{{ flash_message }}</div>
+        </div>
+      {% endif %}
+
+      {% block body %}{% endblock %}
+    </div>
+  </section>
+
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

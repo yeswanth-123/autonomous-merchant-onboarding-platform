@@ -1,0 +1,88 @@
+{% macro badge(value, text=None) %}
+<span class="badge tone-{{ tone_for(value) }}">{{ text or label_for(value) }}</span>
+{% endmacro %}
+
+{% macro csrf_field() %}
+<input type="hidden" name="csrf" value="{{ csrf }}">
+{% endmacro %}
+
+{% macro kpi(title, value, hint='', tone_name='') %}
+<div class="kpi {{ 'tone-' ~ tone_name if tone_name }}">
+  <div class="k">{{ title }}</div>
+  <div class="v">{{ value }}</div>
+  {% if hint %}
+    <div class="h">{{ hint }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro stepper(stages, current_index, is_ended=false, needs_attention=false) %}
+<ol class="stepper{{ ' warn' if needs_attention }}{{ ' ended' if is_ended }}">
+  {% for stage_name in stages %}
+    <li class="{{ 'done' if current_index is not none and loop.index0 < current_index
+                  else ('current' if current_index is not none and loop.index0 == current_index else '') }}">
+      <span class="dot">{{ loop.index }}</span>
+      <span class="lbl">{{ stage_name }}</span>
+    </li>
+  {% endfor %}
+</ol>
+{% endmacro %}
+
+{% macro required_mark() %}<span class="req" aria-hidden="true">*</span>{% endmacro %}
+
+{% macro field(name, label_text, values, errors, input_type='text', hint='', placeholder='', extra_attributes='',
+               css_class='', required=false) %}
+<div class="{{ css_class }}">
+  <label class="f" for="f_{{ name }}">{{ label_text }}{% if required %}{{ required_mark() }}{% endif %}</label>
+  <input id="f_{{ name }}"
+         name="{{ name }}"
+         type="{{ input_type }}"
+         value="{{ values.get(name, '') }}"
+         placeholder="{{ placeholder }}"
+         class="{{ 'err' if errors and errors.get(name) }}"
+         {% if required %}aria-required="true"{% endif %}
+         {{ extra_attributes|safe }}>
+  {% if errors and errors.get(name) %}
+    <div class="f-err">{{ errors[name] }}</div>
+  {% elif hint %}
+    <div class="f-hint">{{ hint }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro filedrop(name, title, hint='Drop a file or click to browse', css_class='', required=false, error='') %}
+<div class="{{ css_class }}">
+  <div class="f" style="font-weight:600;font-size:.86rem;margin-bottom:4px">{{ title }}{% if required %}{{ required_mark() }}{% endif %}</div>
+  <div class="file-drop">
+    <input type="file"
+           name="{{ name }}"
+           accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
+    <div class="t">{{ hint }}</div>
+    <div class="s">
+      PDF, PNG or JPG
+      · {{ photo_guidance.recommended_long_side[0] }}–{{ photo_guidance.recommended_long_side[1] }} px
+      · max {{ photo_guidance.max_megabytes }} MB
+      · stored encrypted
+    </div>
+  </div>
+  {% if error %}
+    <div class="f-err">{{ error }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro upload_note() %}
+<p class="muted small mt">
+  Photos: keep the document straight and upright (not sideways or upside down), with all four corners in the picture.
+</p>
+{% endmacro %}
+
+{% macro alert(tone_name, title, icon='ℹ️') %}
+<div class="alert tone-{{ tone_name }}">
+  <span class="ic">{{ icon }}</span>
+  <div>
+    <b>{{ title }}</b>
+    {{ caller() if caller }}
+  </div>
+</div>
+{% endmacro %}

@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}My data{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>My data</h1>
+      <div class="sub">
+        Your applications and the documents you uploaded. How long we keep them:
+        <a href="/retention-policy" target="_blank">retention policy</a>.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Your applications</h2>
+    {% for application in applications %}
+      <a class="appcard" href="/portal/applications/{{ application.id }}">
+        <div>
+          <div class="nm">{{ application.name }}</div>
+          <div class="muted small">{{ application.id }}</div>
+        </div>
+        <span class="badge tone-{{ application.tone }}">{{ application.headline }}</span>
+      </a>
+    {% else %}
+      <p class="muted">No applications.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

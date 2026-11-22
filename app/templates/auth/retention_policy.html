@@ -1,0 +1,51 @@
+{% extends "auth_layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Retention policy{% endblock %}
+
+{% block body %}
+  <h1>Privacy &amp; retention policy</h1>
+  <p class="muted mb">What we store and how long we keep it.</p>
+
+  <h2>What we store</h2>
+  <dl class="kv mb">
+    <dt>Account</dt>
+    <dd>Name, email and a salted scrypt password hash.</dd>
+
+    <dt>Application data</dt>
+    <dd>Business, PAN, GSTIN and bank details: encrypted field by field.</dd>
+
+    <dt>Documents</dt>
+    <dd>Your uploads: encrypted (AES-256-GCM) with a unique key per file.</dd>
+
+    <dt>Audit trail</dt>
+    <dd>Who did what and when, with identifiers masked, never your documents.</dd>
+
+    <dt>Third parties</dt>
+    <dd>
+      Verification providers receive only the values needed for each check.
+      Documents are never sent to outside services.
+    </dd>
+  </dl>
+
+  <h2>How long we keep it</h2>
+  <dl class="kv mb">
+    <dt>Rejected / expired / withdrawn</dt>
+    <dd>
+      Documents deleted after <b>{{ retention.get('terminal_documents_days', 30) }} days</b>;
+      record anonymised after <b>{{ retention.get('terminal_anonymise_days', 90) }} days</b>.
+    </dd>
+
+    <dt>Merchants</dt>
+    <dd>
+      Kept while your merchant account is live. Once it ends, kept for the legal retention period
+      (<b>{{ ((retention.get('merchant_retention_days', 2555) or 0) / 365)|round(1) }} years</b>),
+      then anonymised.
+    </dd>
+
+    <dt>Sessions</dt>
+    <dd>Sign-in sessions expire after 12 hours (2 hours idle).</dd>
+  </dl>
+
+  <p class="muted small mt"><a href="/signup">Create an account</a> · <a href="/login">Sign in</a></p>
+{% endblock %}

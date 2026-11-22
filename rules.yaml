@@ -1,0 +1,94 @@
+# Config-driven behaviour of the onboarding workflow.
+# Change a value here and restart: no code change is needed.
+
+
+# The kinds of business that may apply. Anything else is refused (HTTP 422).
+business_types: [company, firm, trust, individual]
+
+
+# Which verification checks and which documents each kind of business needs.
+required_checks:
+  default: [PAN, GST, BANK, RISK]
+  individual: [PAN, BANK, RISK]        # GST is optional for individuals
+
+required_documents:
+  default: [PAN, GST, BANK_PROOF]
+  individual: [PAN, BANK_PROOF]
+
+
+# Calling the (mock) verification providers.
+verification:
+  timeout_seconds: 30                  # per-request deadline (override: ONB_TIMEOUT_SECONDS)
+  max_attempts: 2                      # request attempts per check before escalating
+
+risk:
+  auto_approve_max: MEDIUM             # HIGH => manual review
+
+
+# Reading documents.
+extraction:
+  min_confidence: 0.80
+  name_match: {pass: 90, review: 75}   # rapidfuzz token_set_ratio thresholds
+  blur_laplacian_min: 100              # variance of Laplacian below this => blurry image
+  min_image_quality: 0.5               # for payload-simulated quality scores
+
+
+# What to do with a provider answer that arrives after its request already timed out.
+late_callback_policy: review           # review | accept
+
+
+# Retry behaviour for creating the merchant ID, and for background jobs in general.
+provisioning:
+  max_attempts: 4
+  backoff_base_seconds: 2
+
+job_defaults:
+  max_attempts: 5
+  backoff_base_seconds: 2
+  backoff_cap_seconds: 60
+
+
+# How long a merchant has to answer a request for more information.
+needs_info_expiry_seconds: 604800      # 7 days (override: ONB_EXPIRY_SECONDS)
+
+
+# Duplicate application detection.
+duplicates:
+  name_match: 92
+
+
+# What to do when a provider says a check failed: ask the merchant, send to a human, or reject.
+reason_actions:
+  PAN_NOT_FOUND: needs_info
+  PAN_NAME_MISMATCH: needs_info
+  GST_NOT_FOUND: needs_info
+  GST_CANCELLED: manual_review
+  GST_PAN_MISMATCH: needs_info
+  BANK_ACCOUNT_CLOSED: needs_info
+  BANK_NAME_MISMATCH: needs_info
+  SANCTIONS_HIT: reject
+  PAN_DECEASED: reject
+  DEFAULT: manual_review
+
+# The text the merchant reads for each reason code.
+messages:
+  PAN_NOT_FOUND: "PAN could not be found. Please provide a valid PAN."
+  PAN_NAME_MISMATCH: "Name on PAN does not match the application. Please correct the legal name or PAN."
+  GST_NOT_FOUND: "GSTIN could not be verified. Please provide a valid GSTIN."
+  GST_PAN_MISMATCH: "GSTIN does not belong to the PAN provided."
+  BANK_ACCOUNT_CLOSED: "Bank account appears closed. Please provide an active account."
+  BANK_NAME_MISMATCH: "Account holder name does not match. Please correct bank details."
+
+
+# Data retention policy (all values in days unless noted).
+retention:
+  sweep_interval_seconds: 3600         # how often the worker runs the retention job
+  terminal_documents_days: 30          # REJECTED / EXPIRED / WITHDRAWN: delete stored documents + extracted values
+  terminal_anonymise_days: 90          # ...then anonymise the application record itself
+
+  # Former merchants: the legal minimum (about 7 years) counted from when the relationship ENDED.
+  # A merchant whose account is still live is never anonymised.
+  merchant_retention_days: 2555
+
+  provider_raw_payload_days: 30        # raw provider callbacks are kept this long
+  audit: kept                          # audit trail is append-only and holds no raw PII (masked at write time)

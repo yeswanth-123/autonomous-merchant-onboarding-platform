@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Review queue{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>Review queue</h1>
+      <div class="sub">Applications waiting for review.</div>
+    </div>
+  </div>
+
+  {% for task in review_tasks %}
+    <a class="appcard" href="/console/applications/{{ task.application_id }}">
+      <div>
+        <div class="nm">{{ task.reason|replace('_', ' ')|capitalize }}</div>
+        <div class="muted small">
+          {{ task.application_id }} · opened {{ task.opened_at|short_datetime }} · {{ ui.badge(task.state) }}
+        </div>
+        <div class="mono muted mt">{{ task.context }}</div>
+      </div>
+      <span class="badge tone-orange">Priority {{ task.priority }}</span>
+    </a>
+  {% else %}
+    <div class="card">
+      <div class="empty">
+        <div class="big">✅</div>
+        <b>Nothing waiting for review</b>
+        New exceptions will appear here.
+      </div>
+    </div>
+  {% endfor %}
+{% endblock %}

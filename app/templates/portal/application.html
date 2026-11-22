@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% import "_ui.html" as ui with context %}
+
+{% block title %}Application {{ view.id }}{% endblock %}
+
+{% block body %}
+  <div class="pagehead">
+    <div>
+      <h1>{{ view.form.get('legal_name') or 'Application' }}</h1>
+      <div class="sub">{{ view.id }} · started {{ view.created_at|short_datetime }}</div>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="/portal">← All applications</a>
+    </div>
+  </div>
+
+  <div id="live" data-poll="/portal/applications/{{ view.id }}?fragment=true" data-interval="3000">
+    {% include "portal/_status.html" %}
+  </div>
+
+  {% if view.can_edit %}
+    <details class="acc" {{ 'open' if view.needs_action }}>
+      <summary>{{ 'Fix and resubmit' if view.needs_action else 'Update my details or documents' }}</summary>
+
+      <div class="body">
+        <p class="muted small">
+          Change only what is needed. Checks that are unaffected will not be repeated.
+          This keeps the same application ({{ view.id }}).
+        </p>
+
+        <form method="post" action="/portal/applications/{{ view.id }}/update" enctype="multipart/form-data" novalidate>
+          {{ ui.csrf_field() }}
+
+          <div class="form-grid">
+            {{ ui.field('legal_name', 'Legal business name', view.form, {}, css_class='full') }}
+
+            {% if view.business_type == 'individual' %}
+              {{ ui.field('proprietor_name', "Owner's name (as on PAN card)", view.form, {}, css_class='full') }}
+            {% endif %}
+
+            {{ ui.field('pan', 'PAN', view.form, {}) }}
+            {{ ui.field('gstin', 'GSTIN', view.form, {}) }}
+            {{ ui.field('bank_account', 'Bank account number', view.form, {}) }}
+            {{ ui.field('ifsc', 'IFSC', view.form, {}) }}
+            {{ ui.field('account_holder', 'Account holder name', view.form, {}, css_class='full') }}
+            {{ ui.field('pincode', 'PIN code', view.form, {}) }}
+            {{ ui.field('phone', 'Contact phone', view.form, {}) }}
+          </div>
+
+          <h3 class="mt">Replace documents (optional)</h3>
+
+          <div class="grid g3 mt">
+            {{ ui.filedrop('file_PAN', 'PAN card') }}
+            {% if 'GST' in required_docs %}
+              {{ ui.filedrop('file_GST', 'GST certificate') }}
+            {% endif %}
+            {{ ui.filedrop('file_BANK_PROOF', 'Cancelled cheque / bank proof') }}
+          </div>
+          {{ ui.upload_note() }}
+
+          <div class="actions mt">
+            <button type="submit">Resubmit</button>
+          </div>
+        </form>
+      </div>
+    </details>
+  {% endif %}
+
+  <div class="card">
+    <h2>Your data on this application</h2>
+
+    <p class="muted small">
+      Documents are stored encrypted.
+      {% if view.docs_purged %}
+        <b>Your documents were deleted under our retention policy.</b>
+      {% elif view.ended %}
+        Documents of ended applications are deleted automatically after
+        {{ retention.get('terminal_documents_days', 30) }} days.
+      {% else %}
+        Merchant records are kept while the account is live and for
+        {{ ((retention.get('merchant_retention_days', 2555) or 0) / 365)|round(0)|int }} years after it ends,
+        as required by regulation.
+      {% endif %}
+      See our <a href="/retention-policy" target="_blank">retention policy</a>.
+    </p>
+
+    {% if view.anonymised %}
+      <p class="small muted mt">This application's personal data has been removed.</p>
+    {% endif %}
+  </div>
+{% endblock %}
